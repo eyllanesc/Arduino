@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.min.js"></script>
+        <script src="http://people.iola.dk/olau/flot/jquery.flot.js"></script>
+        <script>
+            $(document).ready(function() {
+                 if ( typeof(WebSocket) != "function" ) {
+                     $('body').html("<h2><center>ERROR: This browser does not support Web Sockets</center></h2>");
+                 }
+            });
+ 
+            function plotnumbers() {
+                var data = {};
+                var s = new WebSocket("ws://localhost:8000/data");
+ 
+                s.onopen = function() {
+                    s.send('hi');
+                };
+ 
+                s.onmessage = function(e) {
+                    var lines = e.data.split('\n');
+                    for (var i = 0; i < lines.length - 1; i++) {
+                        var parts = lines[i].split(' ');
+                        var d = parts[0], x = parseFloat(parts[1]), y = parseFloat(parts[2]);
+                        if (!(d in data)) data[d] = [];
+                        data[d].push([x,y]);
+                     }
+                     var plots = [];
+                     for (var d in data) plots.push( { data: data[d].slice(data[d].length - 200) } );
+                     $.plot( $("#placeholder"), plots,
+                     {
+                         series: {
+                             color: "rgba(255, 0, 0, 0.8)",
+                             lines: { show: true,
+                                      lineWidth: 5,
+                                      fill: true,
+                                      fillColor: "rgba(255, 162, 0, 0.6)"
+                             },
+                          },
+                          yaxis: { min: 0 },
+                     } );
+                     s.send('');
+                 };
+            };
+        </script>
+ 
+    </head>
+    <body>
+         <center><h3>Plot of Arduino Data</h3><center>
+         <div id="placeholder" style="width:600px;height:300px"></div>
+         <br />
+         <input type="submit" class="button" value="Start Plot" onClick="plotnumbers();" />
+    </body>
+</html>
